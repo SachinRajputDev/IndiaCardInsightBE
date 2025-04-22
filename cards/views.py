@@ -11,6 +11,7 @@ from rest_framework import status
 from .formschema import get_form_schema
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def recommend_cards(request):
     """
     Recommend credit cards based on spending form input.
@@ -172,6 +173,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['card_name', 'bank', 'card_type', 'network']
     ordering_fields = ['annual_fee', 'effective_annual_fee', 'promotional_order']
+    permission_classes = [AllowAny]
 
     @action(detail=False, methods=['get'])
     def promotional_cards(self, request):
