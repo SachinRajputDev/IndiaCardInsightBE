@@ -116,8 +116,8 @@ def get_top_card_groups(cards, spending, group_size=1, max_groups=10):
             })
     # Now, compute groups
     for group in group_candidates:
-        if len(group) == 1:
-            continue  # Skip single-card groups (already handled)
+        if len(group) < 2:
+            continue
         total_savings = 0
         breakdown = []
         total_spend = 0
@@ -161,14 +161,11 @@ def get_top_card_groups(cards, spending, group_size=1, max_groups=10):
                 'savings': best_saving,
                 'cashbackPercent': best_cashback_percent
             })
-        # Remove cards that never provide unique value
-        essential_cards = [card for card in group if card.id in spend_to_best_card]
-        if len(essential_cards) != len(group):
-            continue
+        group_cards = list(group)
         # Check if group provides higher net benefit than any member alone
         group_net_benefit = 0
         card_net_benefits = {}
-        for card in group:
+        for card in group_cards:
             net_benefit_info = get_card_net_benefit(card, per_card_cashback[card.id])
             card_net_benefits[card.id] = net_benefit_info
             group_net_benefit += net_benefit_info['net_benefit']
@@ -181,7 +178,7 @@ def get_top_card_groups(cards, spending, group_size=1, max_groups=10):
         reasoning = "Group these cards: together they cover different categories for better total savings than any card alone."
         group_results.append({
             'type': 'group',
-            'cards': list(group),
+            'cards': list(group_cards),
             'totalSavings': total_savings,
             'breakdown': breakdown,
             'spendCoverage': round((covered_spend / total_spend) * 100, 2) if total_spend > 0 else 0.0,
@@ -194,4 +191,3 @@ def get_top_card_groups(cards, spending, group_size=1, max_groups=10):
     all_results = [r for r in all_results if r['netBenefit'] > 0]
     all_results.sort(key=lambda g: g['netBenefit'], reverse=True)
     return all_results[:max_groups]
-

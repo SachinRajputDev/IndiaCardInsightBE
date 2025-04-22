@@ -19,18 +19,25 @@ def recommend_cards(request):
     serializer.is_valid(raise_exception=True)
     spending = serializer.validated_data['spending']
     preferences = serializer.validated_data.get('preferences', {})
-    num_new_cards = preferences.get('num_new_cards', 1)
+    # Determine group size: use desiredCardCount from frontend, fallback to num_new_cards
+    num_new_cards = preferences.get('desiredCardCount', preferences.get('num_new_cards', 1))
     cards = list(CreditCard.objects.all())
 
     # Generate top groups of num_new_cards
     group_results = get_top_card_groups(cards, spending, group_size=num_new_cards, max_groups=10)
     groups = []
     filtered_groups = []
+    seen_groups = set()
     for group_result in group_results:
         # Only include groups with strictly positive netBenefit
         if group_result.get('netBenefit', 0) <= 0:
             continue
         group_cards = group_result['cards']
+        # ensure uniqueness: skip if same card ID set seen
+        card_ids = tuple(sorted(card.id for card in group_cards))
+        if card_ids in seen_groups:
+            continue
+        seen_groups.add(card_ids)
         group_cards_serialized = []
         for card in group_cards:
             savings_breakdown = [

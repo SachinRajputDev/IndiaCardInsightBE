@@ -102,6 +102,8 @@ class PreferencesSerializer(serializers.Serializer):
     cards_to_exclude = serializers.ListField(child=serializers.CharField(), required=False)
     cards_you_own = serializers.ListField(child=serializers.CharField(), required=False)
     num_new_cards = serializers.IntegerField(required=False)
+    # Desired number of cards per group from frontend
+    desiredCardCount = serializers.IntegerField(required=False)
 
 class CardRecommendationInputSerializer(serializers.Serializer):
     spending = serializers.ListField(child=SpendingSerializer(), required=True)
