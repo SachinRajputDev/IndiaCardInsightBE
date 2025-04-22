@@ -174,6 +174,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
     search_fields = ['card_name', 'bank', 'card_type', 'network']
     ordering_fields = ['annual_fee', 'effective_annual_fee', 'promotional_order']
     permission_classes = [AllowAny]
+    
 
     @action(detail=False, methods=['get'])
     def promotional_cards(self, request):
@@ -196,7 +197,13 @@ class CreditCardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def filter_cards(self, request):
         queryset = self.get_queryset()
-        
+        # Filter by filters (CardFilter slug)
+        filters_param = request.query_params.get('filters')
+        if filters_param:
+            filter_slugs = [f.strip() for f in filters_param.split(',') if f.strip()]
+            if filter_slugs:
+                queryset = queryset.filter(filters__slug__in=filter_slugs).distinct()
+                
         # Filter by card type
         card_type = request.query_params.get('card_type', None)
         if card_type:
