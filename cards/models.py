@@ -26,11 +26,6 @@ class CreditCard(models.Model):
         (2, 'Coming Soon'),
     ]
 
-    STATUS_CHOICES = [
-        (0, 'Discontinued'),
-        (1, 'Active'),
-        (2, 'Coming Soon'),
-    ]
     card_name = models.CharField(max_length=255)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, related_name='cards')
     card_type = models.CharField(max_length=50, default='Credit Card')
@@ -172,3 +167,12 @@ class PromotionalBanner(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Highlight(models.Model):
+    # One-to-one highlight data for a credit card
+    card = models.OneToOneField(CreditCard, on_delete=models.CASCADE, related_name='highlight')
+    highlight = models.JSONField(help_text="Structured highlight data for the card")
+
+    def __str__(self):
+        return f"Highlight for {self.card}"

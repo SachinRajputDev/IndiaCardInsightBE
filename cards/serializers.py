@@ -2,8 +2,14 @@ from rest_framework import serializers
 from .models import (
     CreditCard, FeeWaiver, RewardPointConversion, DefaultCashback,
     CashbackRule, RewardMultiplier, WelcomeBenefit, MilestoneBonus,
-    CardBenefit, FeesAndCharges, EligibilityCriteria, PromotionalBanner
+    CardBenefit, FeesAndCharges, EligibilityCriteria, PromotionalBanner,
+    Bank, Highlight
 )
+
+class BankSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bank
+        fields = ['id', 'name', 'website', 'logo_url']
 
 class FeeWaiverSerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,7 +61,21 @@ class EligibilityCriteriaSerializer(serializers.ModelSerializer):
         model = EligibilityCriteria
         exclude = ('card',)
 
+class HighlightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Highlight
+        fields = ['highlight']
+
 class CreditCardSerializer(serializers.ModelSerializer):
+    bank = BankSerializer(read_only=True)
+    bank_id = serializers.PrimaryKeyRelatedField(queryset=Bank.objects.all(), source='bank', write_only=True)
+    # Expose flat list of highlights instead of nested dict
+    highlight = serializers.JSONField(source='highlight.highlight', read_only=True)
+    # CamelCase mapping for frontend
+    annualFee = serializers.IntegerField(source='annual_fee', read_only=True)
+    # Expose frontend-friendly fields
+    name = serializers.CharField(source='card_name', read_only=True)
+    issuer = serializers.CharField(source='bank.name', read_only=True)
     fee_waiver = FeeWaiverSerializer(read_only=True)
     reward_point_conversion = RewardPointConversionSerializer(read_only=True)
     default_cashback = DefaultCashbackSerializer(read_only=True)
