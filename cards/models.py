@@ -51,8 +51,9 @@ class CreditCard(models.Model):
 
 class FeeWaiver(models.Model):
     card = models.OneToOneField(CreditCard, on_delete=models.CASCADE, related_name='fee_waiver')
-    annual_fee = models.PositiveIntegerField()
-    waiver_on_annual_spend = models.PositiveIntegerField()
+    annual_fee = models.PositiveIntegerField(null=True, blank=True)
+    joining_fee = models.PositiveIntegerField(null=True, blank=True)
+    waiver_on_annual_spends = models.PositiveIntegerField(null=True, blank=True)
     waiver_description = models.TextField(null=True, blank=True)
 
 
