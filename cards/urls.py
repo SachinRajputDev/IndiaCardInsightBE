@@ -5,7 +5,7 @@ from .views import CreditCardViewSet
 router = DefaultRouter()
 router.register(r'cards', CreditCardViewSet)
 
-from .views import form_schema, recommend_cards, all_categories, subcategories, brands
+from .views import form_schema, recommend_cards, all_categories, subcategories, brands, purchase_advisor
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -14,4 +14,5 @@ urlpatterns = [
     path('categories/', all_categories, name='all-categories'),
     path('subcategories/', subcategories, name='subcategories'),
     path('brands/', brands, name='brands'),
+    path('purchase-advisor/', purchase_advisor, name='purchase-advisor'),
 ]

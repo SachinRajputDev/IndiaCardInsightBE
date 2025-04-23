@@ -128,3 +128,12 @@ class PreferencesSerializer(serializers.Serializer):
 class CardRecommendationInputSerializer(serializers.Serializer):
     spending = serializers.ListField(child=SpendingSerializer(), required=True)
     preferences = PreferencesSerializer(required=False)
+
+class PurchaseAdvisorInputSerializer(serializers.Serializer):
+    amount = serializers.FloatField(required=True)
+    category = serializers.CharField(required=True)
+    platform = serializers.CharField(required=False, allow_blank=True)
+    platform_name = serializers.CharField(required=False, allow_blank=True)
+    specific_category = serializers.CharField(required=False, allow_blank=True)
+    brand = serializers.CharField(required=False, allow_blank=True)
+    owned_cards = serializers.ListField(child=serializers.IntegerField(), required=True)

@@ -4,11 +4,12 @@ from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 from django.db.models import Q
 from .models import CreditCard, PromotionalBanner
-from .serializers import CreditCardSerializer, PromotionalBannerSerializer, CardRecommendationInputSerializer
+from .serializers import CreditCardSerializer, PromotionalBannerSerializer, CardRecommendationInputSerializer, PurchaseAdvisorInputSerializer
 from .utils import get_top_card_groups
 from rest_framework.decorators import api_view
 from rest_framework import status
 from .formschema import get_form_schema
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -45,7 +46,8 @@ def recommend_cards(request):
                 {
                     'spendEntry': b['spendEntry'],
                     'savings': b['savings'],
-                    'cashbackPercent': b['cashbackPercent']
+                    'cashbackPercent': b['cashbackPercent'],
+                    'spendLabel': b.get('spendLabel') or format_spend_label(b['spendEntry'])
                 }
                 for b in group_result.get('breakdown', []) if b.get('bestCardId') == card.id
             ]
@@ -278,3 +280,68 @@ class CreditCardViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def purchase_advisor(request):
+    # Accepts a spending form entry (object) or a list of entries under 'spending'.
+    # Handles both legacy and new structure for compatibility.
+    spending_entries = []
+    owned_cards = []
+    if 'spending' in request.data and isinstance(request.data['spending'], list):
+        # New structure: spending is a list of dicts
+        spending_entries = request.data['spending']
+        owned_cards = request.data.get('owned_cards', [])
+    else:
+        # Legacy structure: flat keys
+        spending_entry = {
+            'amount': request.data.get('amount'),
+            'category': request.data.get('category'),
+            'subcategory': request.data.get('subcategory'),
+            'specificCategory': request.data.get('specificCategory'),
+            'brand': request.data.get('brand'),
+            'platform': request.data.get('platform'),
+            'platformName': request.data.get('platformName'),
+            'channel': request.data.get('channel'),
+            'payment_app': request.data.get('payment_app'),
+            'store_name': request.data.get('store_name'),
+            'purpose': request.data.get('purpose'),
+            'frequency': request.data.get('frequency'),
+            'transactionType': request.data.get('transactionType'),
+        }
+        spending_entries = [spending_entry]
+        owned_cards = request.data.get('owned_cards', [])
+
+    # Only process the first spending entry for now (single-purchase advisor)
+    entry = spending_entries[0]
+    amount = float(entry.get('amount', 0) or 0)
+    category = entry.get('category', '') or entry.get('specificCategory', '')
+    subcategory = entry.get('subcategory', '')
+    brand = entry.get('brand', '')
+    platform = entry.get('platform', '')
+    platform_name = entry.get('platformName', '')
+
+    cards = CreditCard.objects.filter(id__in=owned_cards)
+    results = []
+    for card in cards:
+        # Find the matching rule (category, subcategory, brand, platform, etc.)
+        matching = None
+        for cat_rule in getattr(card, 'categories', []):
+            if (
+                (cat_rule.category and cat_rule.category.lower() == (category or '').lower()) or
+                (subcategory and hasattr(cat_rule, 'subcategory') and cat_rule.subcategory and cat_rule.subcategory.lower() == subcategory.lower()) or
+                (brand and hasattr(cat_rule, 'brand') and cat_rule.brand and cat_rule.brand.lower() == brand.lower()) or
+                (platform and hasattr(cat_rule, 'platform') and cat_rule.platform and cat_rule.platform.lower() == platform.lower())
+            ):
+                matching = cat_rule
+                break
+        cashback_rate = getattr(matching, 'cashbackRate', 0) if matching else 0
+        if cashback_rate and cashback_rate > 0:
+            cashback_amount = amount * cashback_rate / 100
+            results.append({
+                'card': CreditCardSerializer(card).data,
+                'cashbackRate': cashback_rate,
+                'cashbackAmount': cashback_amount,
+                'additional_conditions': getattr(matching, 'additional_conditions', '') if matching else '',
+            })
+    return Response({'results': results})
